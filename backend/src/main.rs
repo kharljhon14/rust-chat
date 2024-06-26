@@ -1,4 +1,4 @@
-use routes::chat::chat;
+use routes::chat::{chat, ChatRoom};
 
 mod routes;
 
@@ -6,6 +6,7 @@ mod routes;
 async fn main() {
     let _ = rocket::build()
         .mount("/", rocket::routes![chat])
+        .manage(ChatRoom::default())
         .launch()
         .await;
 }
