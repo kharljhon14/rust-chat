@@ -17,6 +17,26 @@ pub struct ChatRoom {
     connections: Mutex<HashMap<usize, SplitSink<DuplexStream, Message>>>,
 }
 
+impl ChatRoom {
+    pub async fn add(&self, id: usize, sink: SplitSink<DuplexStream, Message>) {
+        let mut connections = self.connections.lock().await;
+        connections.insert(id, sink);
+    }
+
+    pub async fn remove(&self, id: usize) {
+        let mut connections = self.connections.lock().await;
+        connections.remove(&id);
+    }
+
+    pub async fn broadcast_message(&self, message: Message) {
+        let mut connections = self.connections.lock().await;
+
+        for (_id, sink) in connections.iter_mut() {
+            let _ = sink.send(message.clone()).await;
+        }
+    }
+}
+
 #[rocket::get("/")]
 pub fn chat<'r>(ws: WebSocket, state: &'r State<ChatRoom>) -> Channel<'r> {
     ws.channel(move |stream| {
@@ -24,26 +44,16 @@ pub fn chat<'r>(ws: WebSocket, state: &'r State<ChatRoom>) -> Channel<'r> {
             let user_id = USER_ID_COUNTER.fetch_add(1, Ordering::Relaxed);
             let (ws_sink, mut ws_stream) = stream.split();
 
-            {
-                let mut connections = state.connections.lock().await;
-                connections.insert(user_id, ws_sink);
-            }
+            // Add connection
+            state.add(user_id, ws_sink).await;
 
             while let Some(message) = ws_stream.next().await {
-                {
-                    let mut connections = state.connections.lock().await;
-
-                    let msg = message?;
-                    for (_id, sink) in connections.iter_mut() {
-                        let _ = sink.send(msg.clone()).await;
-                    }
-                }
+                // Send message
+                state.broadcast_message(message?).await;
             }
 
-            {
-                let mut connections = state.connections.lock().await;
-                connections.remove(&user_id);
-            }
+            // Remove connection
+            state.remove(user_id).await;
 
             Ok(())
         })
