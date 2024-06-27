@@ -14,18 +14,20 @@ pub fn message_list(props: &Props) -> Html {
             .iter()
             .map(|chat_message| {
                 html! {
-                    <div class="list-group-item list-group-item-action">
-                        <div class="d-flex w-100 justify-content-between">
-                            <h5>
-                                {chat_message.author.clone()}
-                            </h5>
-                            <small>
-                                {chat_message.created_at.format("%Y-%m-%d %H:%M").to_string()}
-                            </small>
+                    <div class="list-group">
+                        <div class="list-group-item list-group-item-action">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h5>
+                                    {chat_message.author.clone()}
+                                </h5>
+                                <small>
+                                    {chat_message.created_at.format("%Y-%m-%d %H:%M").to_string()}
+                                </small>
+                            </div>
+                            <p>
+                                {chat_message.message.clone()}
+                            </p>
                         </div>
-                        <p>
-                            {chat_message.message.clone()}
-                        </p>
                     </div>
                 }
             })
