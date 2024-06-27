@@ -4,7 +4,7 @@ use std::{
 };
 
 use chrono::Utc;
-use common::chat::chat::ChatMessage;
+use common::chat::chat::{ChatMessage, WebSocketMessage, WebSocketMessageType};
 use rocket::{
     futures::{stream::SplitSink, SinkExt, StreamExt},
     tokio::sync::Mutex,
@@ -37,11 +37,17 @@ impl ChatRoom {
             author: format!("user #{}", author_id),
             created_at: Utc::now().naive_utc(),
         };
+
+        let websocket_message = WebSocketMessage {
+            message_type: WebSocketMessageType::NewMessage,
+            message: Some(chat_message),
+            users: None,
+        };
         let mut connections = self.connections.lock().await;
 
         for (_id, sink) in connections.iter_mut() {
             let _ = sink
-                .send(Message::Text(json!(chat_message).to_string()))
+                .send(Message::Text(json!(websocket_message).to_string()))
                 .await;
         }
     }
