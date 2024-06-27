@@ -1,15 +1,14 @@
 use common::chat::chat::{WebSocketMessage, WebSocketMessageType};
-use web_sys::HtmlTextAreaElement;
+
 use yew::prelude::*;
 use yew_hooks::use_websocket;
+
+use super::{message_list::MessageList, send_dialog::SendDialog};
 
 #[function_component]
 pub fn App() -> Html {
     let messages_handle = use_state(Vec::default);
     let messages = (*messages_handle).clone();
-
-    let new_message_handle = use_state(String::default);
-    let new_message = (*new_message_handle).clone();
 
     let ws = use_websocket("ws://127.0.0.1:8000".to_string());
     let mut cloned_messages = messages.clone();
@@ -29,51 +28,20 @@ pub fn App() -> Html {
         }
     });
 
-    let cloned_new_message_handle = new_message_handle.clone();
-    let on_message_change = Callback::from(move |event: Event| {
-        let target = event.target_dyn_into::<HtmlTextAreaElement>();
-
-        if let Some(textarea) = target {
-            cloned_new_message_handle.set(textarea.value());
-        }
-    });
-
-    let cloned_new_msg = new_message.clone();
-    let cloned_ws = ws.clone();
-    let on_submit = Callback::from(move |_| {
-        cloned_ws.send(cloned_new_msg.clone());
-        new_message_handle.set("".to_string());
+    let cloned_ws: yew_hooks::UseWebSocketHandle = ws.clone();
+    let send_message_callback = Callback::from(move |msg: String| {
+        cloned_ws.send(msg.clone());
     });
 
     html! {
         <div class="container">
             <div class="row">
                 <div class="list-group">
-                    {
-                        messages.iter().map(|chat_message| html!{
-                            <div class="list-group-item list-group-item-action">
-                                <div class="d-flex w-100 justify-content-between">
-                                    <h5>
-                                        {chat_message.author.clone()}
-                                    </h5>
-                                    <small>
-                                        {chat_message.created_at.format("%Y-%m-%d %H:%M").to_string()}
-                                    </small>
-                                </div>
-                                <p>
-                                    {chat_message.message.clone()}
-                                </p>
-                            </div>
-                        }).collect::<Html>()
-                    }
+                    <MessageList messages={messages}/>
                 </div>
             </div>
             <div class="row mt-5">
-                <div class="input-group">
-                    <textarea class="form-control" placeholder="Enter your message" value={new_message} onchange={on_message_change}>
-                    </textarea>
-                    <button class="btn btn-secondary" type="submit" onclick={on_submit}>{"Send"}</button>
-                </div>
+                <SendDialog send_message_callback={send_message_callback}/>
             </div>
         </div>
     }
