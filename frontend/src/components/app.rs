@@ -37,17 +37,23 @@ pub fn App() -> Html {
     });
 
     html! {
-        <>
-        <ul>
-            {
-                messages.iter().map(|message| html!{
-                    <li>{message}</li>
-                }).collect::<Html>()
-            }
-        </ul>
-            <textarea placeholder="Enter your message" value={new_message} onchange={on_message_change}>
-            </textarea>
-            <button type="submit" onclick={on_submit}>{"Send"}</button>
-        </>
+        <div class="container">
+            <div class="row">
+                <ul class="list-group">
+                    {
+                        messages.iter().map(|message| html!{
+                            <li class="list-group-item">{message}</li>
+                        }).collect::<Html>()
+                    }
+                </ul>
+            </div>
+            <div class="row mt-5">
+                <div class="input-group">
+                    <textarea class="form-control" placeholder="Enter your message" value={new_message} onchange={on_message_change}>
+                    </textarea>
+                    <button class="btn btn-secondary" type="submit" onclick={on_submit}>{"Send"}</button>
+                </div>
+            </div>
+        </div>
     }
 }
