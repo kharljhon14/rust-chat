@@ -51,6 +51,27 @@ impl ChatRoom {
                 .await;
         }
     }
+
+    pub async fn broadcast_users(&self) {
+        let mut connections = self.connections.lock().await;
+        let mut users = vec![];
+
+        for (id, _sink) in connections.iter() {
+            users.push(format!("user #{}", id));
+        }
+
+        let websocket_message = WebSocketMessage {
+            message_type: WebSocketMessageType::UsersList,
+            message: None,
+            users: Some(users),
+        };
+
+        for (_id, sink) in connections.iter_mut() {
+            let _ = sink
+                .send(Message::Text(json!(websocket_message).to_string()))
+                .await;
+        }
+    }
 }
 
 #[rocket::get("/")]
@@ -61,6 +82,7 @@ pub fn chat<'r>(ws: WebSocket, state: &'r State<ChatRoom>) -> Channel<'r> {
             let (ws_sink, mut ws_stream) = stream.split();
             // Add connection
             state.add(user_id, ws_sink).await;
+            state.broadcast_users().await;
 
             while let Some(message) = ws_stream.next().await {
                 // Send message
@@ -69,6 +91,7 @@ pub fn chat<'r>(ws: WebSocket, state: &'r State<ChatRoom>) -> Channel<'r> {
 
             // Remove connection
             state.remove(user_id).await;
+            state.broadcast_users().await;
 
             Ok(())
         })
