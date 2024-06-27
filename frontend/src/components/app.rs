@@ -1,3 +1,4 @@
+use common::chat::chat::ChatMessage;
 use web_sys::HtmlTextAreaElement;
 use yew::prelude::*;
 use yew_hooks::use_websocket;
@@ -15,7 +16,9 @@ pub fn App() -> Html {
 
     use_effect_with(ws.message.clone(), move |ws_message| {
         if let Some(ws_msg) = &**ws_message {
-            cloned_messages.push(ws_msg.clone());
+            let chat_message = serde_json::from_str::<ChatMessage>(&ws_msg).unwrap();
+
+            cloned_messages.push(chat_message);
             messages_handle.set(cloned_messages);
         }
     });
@@ -39,13 +42,25 @@ pub fn App() -> Html {
     html! {
         <div class="container">
             <div class="row">
-                <ul class="list-group">
+                <div class="list-group">
                     {
-                        messages.iter().map(|message| html!{
-                            <li class="list-group-item">{message}</li>
+                        messages.iter().map(|chat_message| html!{
+                            <div class="list-group-item list-group-item-action">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <h5>
+                                        {chat_message.author.clone()}
+                                    </h5>
+                                    <small>
+                                        {chat_message.created_at.format("%Y-%m-%d %H:%M").to_string()}
+                                    </small>
+                                </div>
+                                <p>
+                                    {chat_message.message.clone()}
+                                </p>
+                            </div>
                         }).collect::<Html>()
                     }
-                </ul>
+                </div>
             </div>
             <div class="row mt-5">
                 <div class="input-group">
