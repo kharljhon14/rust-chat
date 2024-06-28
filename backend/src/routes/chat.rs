@@ -42,6 +42,7 @@ impl ChatRoom {
             message_type: WebSocketMessageType::NewMessage,
             message: Some(chat_message),
             users: None,
+            username: None,
         };
         let mut connections = self.connections.lock().await;
 
@@ -63,6 +64,7 @@ impl ChatRoom {
         let websocket_message = WebSocketMessage {
             message_type: WebSocketMessageType::UsersList,
             message: None,
+            username: None,
             users: Some(users),
         };
 

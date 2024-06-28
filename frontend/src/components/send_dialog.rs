@@ -6,6 +6,7 @@ use yew::{
 #[derive(Properties, PartialEq)]
 pub struct Props {
     pub send_message_callback: Callback<String>,
+    pub username: String,
 }
 
 #[function_component(SendDialog)]
@@ -31,9 +32,11 @@ pub fn send_dialog(props: &Props) -> Html {
 
     html! {
     <div class="input-group">
+        <button class="btn btn-secondary">{props.username.clone()}</button>
+        <span class="input-group-text">{"Your Message:"}</span>
         <textarea class="form-control" placeholder="Enter your message" value={new_message} onchange={on_message_change}>
         </textarea>
-        <button class="btn btn-secondary" type="submit" onclick={on_submit}>{"Send"}</button>
+        <button class="btn btn-primary" type="submit" onclick={on_submit}>{"Send"}</button>
     </div>
     }
 }
