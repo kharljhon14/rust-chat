@@ -1,5 +1,7 @@
-use common::chat::chat::{WebSocketMessage, WebSocketMessageType};
+use chrono::Utc;
+use common::chat::chat::{ChatMessage, WebSocketMessage, WebSocketMessageType};
 
+use serde_json::json;
 use yew::prelude::*;
 use yew_hooks::use_websocket;
 
@@ -44,9 +46,31 @@ pub fn App() -> Html {
         }
     });
 
+    let cloned_username = username.clone();
     let cloned_ws: yew_hooks::UseWebSocketHandle = ws.clone();
     let send_message_callback = Callback::from(move |msg: String| {
-        cloned_ws.send(msg.clone());
+        let websocket_message = WebSocketMessage {
+            message_type: WebSocketMessageType::NewMessage,
+            message: Some(ChatMessage {
+                message: msg,
+                author: cloned_username.clone(),
+                created_at: Utc::now().naive_utc(),
+            }),
+            username: None,
+            users: None,
+        };
+        cloned_ws.send(json!(websocket_message).to_string());
+    });
+
+    let cloned_ws: yew_hooks::UseWebSocketHandle = ws.clone();
+    let change_username_callback = Callback::from(move |username: String| {
+        let websocket_message = WebSocketMessage {
+            message_type: WebSocketMessageType::UpdateUsername,
+            message: None,
+            username: Some(username),
+            users: None,
+        };
+        cloned_ws.send(json!(websocket_message).to_string());
     });
 
     html! {
@@ -60,7 +84,12 @@ pub fn App() -> Html {
                 </div>
             </div>
             <div class="row mt-5">
-                <SendDialog send_message_callback={send_message_callback} username={username}/>
+            if username.len() > 0{
+                <SendDialog
+                    send_message_callback={send_message_callback}
+                    change_username_callback={change_username_callback}
+                    username={username}/>
+            }
             </div>
         </div>
     }
