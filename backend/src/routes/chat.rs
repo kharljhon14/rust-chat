@@ -27,19 +27,55 @@ pub struct ChatRoomConnection {
 
 impl ChatRoom {
     pub async fn add(&self, id: usize, sink: SplitSink<DuplexStream, Message>) {
-        let mut connections = self.connections.lock().await;
+        let result = {
+            let mut connections = self.connections.lock().await;
 
-        let connection = ChatRoomConnection {
-            username: format!("User #{}", id),
-            sink,
+            let username = format!("User #{}", id);
+
+            let chat_message = ChatMessage {
+                message: format!("{} joins the chat", username),
+                author: "System".to_string(),
+                created_at: Utc::now().naive_utc(),
+            };
+
+            let connection = ChatRoomConnection { username, sink };
+
+            connections.insert(id, connection);
+
+            Some(chat_message)
         };
 
-        connections.insert(id, connection);
+        if let Some(chat_message) = result {
+            Self::broadcast_message(&self, chat_message).await;
+        }
     }
 
     pub async fn remove(&self, id: usize) {
-        let mut connections = self.connections.lock().await;
-        connections.remove(&id);
+        let result = {
+            let mut connections = self.connections.lock().await;
+
+            let chat_room_connection = connections.get(&id);
+
+            let chat_result = if let Some(user) = chat_room_connection {
+                let chat_message = ChatMessage {
+                    message: format!("{} leaves the chat", user.username),
+                    author: "System".to_string(),
+                    created_at: Utc::now().naive_utc(),
+                };
+
+                Some(chat_message)
+            } else {
+                None
+            };
+
+            connections.remove(&id);
+
+            chat_result
+        };
+
+        if let Some(chat_message) = result {
+            Self::broadcast_message(&self, chat_message).await;
+        }
     }
 
     pub async fn broadcast_message(&self, message: ChatMessage) {
