@@ -125,6 +125,7 @@ pub async fn handle_incoming_message(
                     WebSocketMessageType::UpdateUsername => {
                         if let Some(ws_username) = websocket_message.username {
                             state.update_username(ws_username, connection_id).await;
+                            state.send_username(connection_id).await;
                             state.broadcast_users().await;
                         }
                     }
