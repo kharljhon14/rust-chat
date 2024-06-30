@@ -3,6 +3,7 @@ use std::{
     sync::atomic::{AtomicUsize, Ordering},
 };
 
+use chrono::Utc;
 use common::chat::chat::{ChatMessage, WebSocketMessage, WebSocketMessageType};
 use rocket::{
     futures::{stream::SplitSink, SinkExt, StreamExt},
@@ -101,9 +102,29 @@ impl ChatRoom {
     }
 
     pub async fn update_username(&self, new_username: String, id: usize) {
-        let mut connections = self.connections.lock().await;
-        if let Some(connection) = connections.get_mut(&id) {
-            connection.username = new_username;
+        let result = {
+            let mut connections = self.connections.lock().await;
+
+            if let Some(connection) = connections.get_mut(&id) {
+                let chat_message = ChatMessage {
+                    message: format!(
+                        "User {} changed username to {}",
+                        connection.username, new_username
+                    ),
+                    author: "System".to_string(),
+                    created_at: Utc::now().naive_utc(),
+                };
+
+                connection.username = new_username;
+
+                Some(chat_message)
+            } else {
+                None
+            }
+        };
+
+        if let Some(chat_message) = result {
+            Self::broadcast_message(&self, chat_message).await;
         }
     }
 }
